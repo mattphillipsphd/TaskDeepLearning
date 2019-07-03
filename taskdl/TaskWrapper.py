@@ -10,7 +10,8 @@ class TaskWrapper(object):
         'pytorch': 'lifeomic/lifeomic_torch_task:latest'
     }
 
-    def __init__(self, dataset_id, workspace='/tmp', file_delimiter='/', env='us'):
+    def __init__(self, dataset_id, workspace='/tmp', file_delimiter='/',
+            env='us'):
         self.dataset_id = dataset_id
         self.workspace = workspace
         self.file_delimiter = file_delimiter
@@ -18,7 +19,8 @@ class TaskWrapper(object):
 
     def __upload_python_file(self, python_path):
         try:
-            result = subprocess.check_output(['lo', 'files', 'upload', python_path, self.dataset_id, '--force'])
+            result = subprocess.check_output(['lo', 'files', 'upload',
+                python_path, self.dataset_id, '--force'])
             file_id = str(result, 'utf-8').split(' ')[-1]
             print("File id for python file:")
             print(file_id)
@@ -31,7 +33,8 @@ class TaskWrapper(object):
         file_ids = []
         try:
             for file_path in file_paths:
-                result = subprocess.check_output(['lo', 'files', 'upload', file_path, self.dataset_id, '--force'])
+                result = subprocess.check_output(['lo', 'files', 'upload',
+                    file_path, self.dataset_id, '--force'])
                 file_id = str(result, 'utf-8').split(' ')[-1].replace('\n', '')
                 print("File id for dataset file:")
                 print(file_id)
@@ -42,22 +45,26 @@ class TaskWrapper(object):
 
         return file_ids
 
-    def __construct_inputs(self, python_path, upload_file_paths=None, file_datasets=None):
+    def __construct_inputs(self, python_path, upload_file_paths=None,
+            file_datasets=None):
         file_name = python_path.split(self.file_delimiter)[-1]
         file_id = self.__upload_python_file(python_path)
         inputs = [{
             "path": '%s/%s' % (self.workspace, file_name),
-            "url": "https://api.%s.lifeomic.com/v1/files/%s" % (self.env, file_id),
+            "url": "https://api.%s.lifeomic.com/v1/files/%s" \
+                    % (self.env, file_id),
             "type": "FILE"
         }]
 
         if upload_file_paths:
             file_ids = self.__upload_data_files(upload_file_paths)
-            file_names = [file_path.split(self.file_delimiter)[-1] for file_path in upload_file_paths]
+            file_names = [file_path.split(self.file_delimiter)[-1] \
+                    for file_path in upload_file_paths]
             for i in range(len(file_names)):
                 inputs.append({
                     "path": '%s/%s' % (self.workspace, file_names[i]),
-                    "url": "https://api.%s.lifeomic.com/v1/files/%s" % (self.env, file_ids[i]),
+                    "url": "https://api.%s.lifeomic.com/v1/files/%s" \
+                            % (self.env, file_ids[i]),
                     "type": "FILE"
                 })
 
@@ -66,12 +73,14 @@ class TaskWrapper(object):
                 data_type = "DIRECTORY" if file_d.is_directory else "FILE"
                 inputs.append({
                     "path": '%s/%s' % (self.workspace, file_d.file_name),
-                    "url": "https://api.%s.lifeomic.com/v1/files/%s" % (self.env, file_d.file_id),
+                    "url": "https://api.%s.lifeomic.com/v1/files/%s" \
+                            % (self.env, file_d.file_id),
                     "type": data_type
                 })
         return inputs
 
-    def __construct_body(self, task_name, inputs, image, output_path='model_data.zip', number_gpus=1, cohort_path=None):
+    def __construct_body(self, task_name, inputs, image,
+            output_path='model_data.zip', number_gpus=1, cohort_path=None):
         initial = {
             "name": task_name,
             "datasetId": self.dataset_id,
@@ -79,7 +88,8 @@ class TaskWrapper(object):
             "outputs": [
                 {
                     "path": '%s/%s' % (self.workspace, output_path),
-                    "url": "https://api.%s.lifeomic.com/v1/projects/%s" % (self.env, self.dataset_id),
+                    "url": "https://api.%s.lifeomic.com/v1/projects/%s" \
+                            % (self.env, self.dataset_id),
                     "type": "DATASET"
                 }
             ],
@@ -103,7 +113,8 @@ class TaskWrapper(object):
         if cohort_path:
             initial['outputs'].append({
                 "path": '%s/%s' % (self.workspace, cohort_path),
-                "url": "https://api.%s.lifeomic.com/v1/projects/%s" % (self.env, self.dataset_id),
+                "url": "https://api.%s.lifeomic.com/v1/projects/%s" \
+                        % (self.env, self.dataset_id),
                 "type": "COHORT"
             })
 
@@ -120,9 +131,11 @@ class TaskWrapper(object):
         if number_gpus not in [1, 4, 8]:
             raise RuntimeError("Invalid number of gpus")
         image = self.images.get(image, image)
-        inputs = self.__construct_inputs(python_path, upload_file_paths, file_datasets)
+        inputs = self.__construct_inputs(python_path, upload_file_paths, \
+               file_datasets)
 
-        body = self.__construct_body(task_name, inputs, image, model_path, number_gpus, cohort_path)
+        body = self.__construct_body(task_name, inputs, image, model_path, \
+               number_gpus, cohort_path)
         task_json = json.dumps(body)
         print("Starting Task")
         print(task_json)
